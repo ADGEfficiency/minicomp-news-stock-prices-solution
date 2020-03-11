@@ -26,32 +26,40 @@ requirements: test_environment
 	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
 
 init: requirements
+	pip install "dask[complete]"
 	mkdir -p $(HOME)/$(PROJECT_NAME)/data/raw
 	mkdir -p $(HOME)/$(PROJECT_NAME)/data/interim
 	mkdir -p $(HOME)/$(PROJECT_NAME)/data/processed
+	mkdir -p $(HOME)/$(PROJECT_NAME)/data/holdout
 	mkdir -p $(HOME)/$(PROJECT_NAME)/models
 	mkdir -p $(HOME)/$(PROJECT_NAME)/reports
-	git init
-
-restart:
-	rm -rf ~/minicomp-news-stock-prices-solution
 
 data:
 	rm -rf minicomp-news-stock-prices
 	git clone https://github.com/ADGEfficiency/minicomp-news-stock-prices
 	unzip -o minicomp-news-stock-prices/data/stocknews.zip -d minicomp-news-stock-prices/data/raw
-	cd minicomp-news-stock-prices && python data.py && mv data/train/* $(HOME)/$(PROJECT_NAME)/data/raw
+	cd minicomp-news-stock-prices && python data.py --test 1
+	mv minicomp-news-stock-prices/data/train/* $(HOME)/$(PROJECT_NAME)/data/raw
+	mv minicomp-news-stock-prices/data/test/* $(HOME)/$(PROJECT_NAME)/data/holdout
 	tree $(HOME)/$(PROJECT_NAME)/data
 
 clean:
 	HOME=$($HOME)
-	$(PYTHON_INTERPRETER) src/data/cleaning.py $(HOME)/$(PROJECT_NAME)/data/raw $(HOME)/$(PROJECT_NAME)/data/interim
+	$(PYTHON_INTERPRETER) src/data/cleaning.py
 
 features:
 	HOME=$($HOME)
-	$(PYTHON_INTERPRETER) src/data/features.py $(HOME)/$(PROJECT_NAME)/data/interim $(HOME)/$(PROJECT_NAME)/data/processed
+	$(PYTHON_INTERPRETER) src/data/features.py
 
+train:
+	HOME=$($HOME)
+	$(PYTHON_INTERPRETER) src/models/train.py
+
+predict:
+	HOME=$($HOME)
+	$(PYTHON_INTERPRETER) src/models/predict.py
 ## Delete all compiled Python files
+
 clean-python:
 	find . -type f -name "*.py[co]" -delete
 	find . -type d -name "__pycache__" -delete
